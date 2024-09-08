@@ -1,0 +1,10 @@
+CSH-Server/.venv/
+CSH-Server/__pycache__/
+CSH-Server/flaskr/__pycache__/
+CSH-Server/flaskr/static/
+CSH-Server/flaskr/Untitled-1.ipynb
+CSH-Server/working_old_code/
+solar_energie_dw/data/
+solar_energie_dw/venv/
+solar_energie_dw/node_modules
+

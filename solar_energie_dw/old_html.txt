@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Accessible Map</title>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    .map, #cesiumContainer {
+      width: 100%;
+      height: calc(100% - 120px); /* Adjust height for the toolbar and info box */
+    }
+    .toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+    }
+    .toolbar button {
+      margin: 0 5px;
+      padding: 10px 15px;
+      font-size: 16px;
+    }
+    #dataWarehouseOperations {
+      position: fixed;
+      right: 0;
+      top: 50px;
+      width: 300px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #info-box {
+      position: fixed;
+      right: 0;
+      bottom: 60px; /* Adjust as necessary */
+      width: 300px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="map" class="map" tabindex="0"></div>
+  <div id="cesiumContainer"></div> <!-- Neues div-Element für Cesium -->
+  <div class="toolbar">
+    <button id="zoom-out">Zoom out</button>
+    <button id="zoom-in">Zoom in</button>
+    <button id="toggle3D">Toggle 3D</button>
+  </div>
+  <div id="dataWarehouseOperations">
+    <h2>Data Warehouse-Operationen</h2>
+    <button id="SendLandkreis">Landkreis-Daten schicken</button>
+    <button id="toggleGeoJSON">Landkreis-Daten anzeigen</button>
+    <button id="loadGeoJSON">Bundesländer laden</button>
+    <button id="hideGeoJSON">Bundesländer ausblenden</button>
+    <button id="DWD_Color">Farbiges Raster machen</button>
+    <button class="toggleButton" data-source-key="data(1)">SolarPanel Aggregation</button>
+  </div>
+  <div id="info-box" class="info-box">
+    <h3>Feature Informationen</h3>
+    <p>Klicken Sie auf ein Feature auf der Karte, um Informationen anzuzeigen.</p>
+  </div>
+  <div id="output"></div>
+  <div id="coordinateOutput"></div>
+  <!-- Cesium JS -->
+  <!-- OLCesium JS -->
+  <script type="module" src="main.js"></script>
+</body>
+</html>

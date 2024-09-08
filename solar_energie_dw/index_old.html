@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Accessible Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css">
+  <!--<link href="https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Widgets/widgets.css" rel="stylesheet"> -->
+  <style>
+    @import "node_modules/ol/ol.css";
+    body, html {
+        height: 100%;
+        margin: 0;
+    }
+    .map {
+        width: 100%;
+        height: calc(100% - 120px); /* Adjust height for the toolbar and info box */
+    }
+    .toolbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: flex-start; /* Ändern Sie hier die Ausrichtung */
+        padding: 5px;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+    }
+    .toolbar button {
+        margin: 0 5px;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    .toolbar h3 {
+        margin-right: 10px; /* Fügt 10px Abstand zur Überschrift hinzu */
+        flex-basis: auto; /* Lässt die Überschrift ihre natürliche Breite einnehmen */
+    }
+    #dataWarehouseOperations {
+        position: fixed;
+        right: 0;
+        top: 25px;
+        font-size: 5px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        width: auto; /* Entferne die feste Breite */
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Passe die Mindestbreite an */
+        grid-gap: 5px; /* Abstand zwischen den Buttons */
+    }
+    #dataWarehouseOperations h3 {
+        font-size: 14px; /* Ändere die Schriftgröße nach Bedarf */
+    }
+    .tab {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    .tab-content {
+        display: none;
+    }
+    .active {
+        display: block;
+        z-index: 2;
+    }
+    #info-box {
+        position: fixed;
+        right: 2100px;
+        bottom: 120px;
+        background: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        padding: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        width: auto; /* Entferne die feste Breite */
+    }
+    .popover-body {
+        min-width: 176px;
+    }
+
+    /* Add media queries to make the page responsive */
+    @media only screen and (max-width: 768px) {
+        .map {
+            height: calc(100% - 150px); /* Adjust height for smaller screens */
+        }
+        .toolbar {
+            flex-direction: column; /* Change toolbar layout for smaller screens */
+        }
+        #dataWarehouseOperations {
+            top: 50px; /* Adjust position for smaller screens */
+        }
+        #info-box {
+            right: 100px; /* Adjust position for smaller screens */
+        }
+    }
+    @media only screen and (max-width: 480px) {
+        .map {
+            height: calc(100% - 180px); /* Adjust height for even smaller screens */
+        }
+        .toolbar {
+            font-size: 10px; /* Reduce font size for smaller screens */
+        }
+        #dataWarehouseOperations {
+            top: 75px; /* Adjust position for even smaller screens */
+        }
+        #info-box {
+            right: 50px; /* Adjust position for even smaller screens */
+        }
+    }
+</style>
+</head>
+<body>
+  <div id="map" class="map" tabindex="0"></div>
+    <div id="popup"></div>
+
+    <div id="info-box" class="info-box">
+      <button id="previous">Vorherige Seite</button>
+      <button id="next">Nächste Seite</button>
+      <button id="delete">Features entfernen</button>
+      <h3>Feature Informationen</h3>
+      <p>Klicken Sie auf ein Feature auf der Karte, um Informationen anzuzeigen.</p>
+      <span id="features_Count">&nbsp;0 selected features</span>
+      <span id="features">selected features</span>
+    </div>
+    <div id="output"></div>
+    <div id="coordinateOutput"></div>
+  <div class="toolbar">
+    <h3>Featuremanager</h3>
+      <button id="raster_clickable">Map- oder Raster-Daten erhalten</button>
+      <button id="landkreis_bundesland_lickable">Landkreise oder Bundesland selektieren</button>
+      <button id="Solarpanels_clickable">Solarpanels selektieren</button>
+      <button id="makeDownload">Download bereit machen</button>
+      <a id="download" download="features.json">Download</a>
+
+  <div id="dataWarehouseOperations">
+    <h1>Data Warehouse-Operationen</h1>
+    <!--<button id="onOff" class="toggleButton">Show/Hide</button>-->
+    <div class="tab" id="bundeslaenderTab">
+      <h3>Organisationseinheiten</h3>
+      <button id="toggleGeoJSON">Landkreis-Daten anzeigen</button>
+      <button id="hideLandkreis">Landkreise ausblenden</button>
+      <button id="loadGeoJSON">Bundesländer anzeigen</button>    
+      <button id="hideBundesland">Bundesländer ausblenden</button>      
+    </div>
+
+    <div class="tab" id="solarpanelsTab">
+      <h3>Solarpanels</h3>
+      <button id="Bundesländer_Aggregation" class="toggleButton">Bundesland-Aggregation</button>
+      <button id="Landkreis_Aggregation" class="toggleButton">Landkreis-Aggregation</button>
+      <button id="Selektierte_Aggregation" class="toggleButton">Selektierte Landkreise  anzeigen</button>
+      <button id="Selektierte_Aggregation_Bundesland" class="toggleButton">Selektierte  Bundesländer anzeigen</button>
+      <button id="delete_panels" class="toggleButton">Solarpanels von Karte entfernen</button>
+    </div>
+  
+    <div class="tab" id="dwdTab">
+      <h3>Direkte Sonneneinstrahlung</h3>
+      <form id="data-loader-form">
+        <label for="year" style="font-size: 16px;">Jahr:</label>
+        <select id="year" name="year" style="font-size: 16px">
+          <option value="2023" style="font-size: 18px">2023</option>
+          <option value="2024" style="font-size: 18px">2024</option>
+        </select>
+        <div id="dwd_Nodata_Meldung"></div>
+        <br>
+        <label for="month" style="font-size: 16px;">Monat:</label>
+        <select id="month" name="month" style="font-size: 16px">
+          <option value="01">Januar</option>
+          <option value="02">Februar</option>
+          <option value="03">März</option>
+          <option value="04">April</option>
+          <option value="05">Mai</option>
+          <option value="06">Juni</option>
+          <option value="07">Juli</option>
+          <option value="08">August</option>
+          <option value="09">September</option>
+          <option value="10">Oktober</option>
+          <option value="11">November</option>
+          <option value="12">Dezember</option>
+        </select>
+        <br>
+        <button id="dwd">Sonneneinstrahlung laden</button>
+        <button id="hideDWD">Sonneneinstrahlung entfernen</button>
+      </form>
+      <label for="slider" style="font-size: 14px">Auswahl eines Wertes von 0 bis 1:</label>
+      <input type="range" id="dwdSlider" name="dwdSlider" min="0" max="1" step="0.01">
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Cesium JS -->
+  <!--<script src="https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Cesium.js"></script>-->
+  <script type="module" src="main.js"></script>
+</body>
+</html>
