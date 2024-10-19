@@ -63,6 +63,11 @@ let vectorLayer_Solar_agg = null;
 
 let activeIconPopover = null;  
 
+let rasterCode = null;
+let totalRadiationGermany = 0;
+
+
+
 map.on("click", function (event) {
   coordinate_click = event.coordinate;
   const pixel = event.pixel;
@@ -252,7 +257,11 @@ document
           .fit(geoJsonSource.getExtent(), { padding: [20, 20, 20, 20] });
       }
     });
+
+    const activeLayer = getActiveLayer();
+    console.debug("Layer aktiviert: ", activeLayer);
   });
+
 
 // Event Listener für das Ausblenden der Bundesländer
 document
@@ -704,18 +713,17 @@ document
       console.log("Popup overlay reinitialized and added to map.");
     }
 
+    landkreise_Bundesländer = [];
     //console.log(selected);
     //console.log(selected.entries());
-    for (const object of selected) {
-      //landkreise_Bundesländer.push(Object.values(object));
-      if (
-        landkreise_Bundesländer.includes(
-          object["values_"]["BEZ"] + " " + object["values_"]["GEN"],
-        ) == false
-      )
-        landkreise_Bundesländer.push(
-          object["values_"]["BEZ"] + " " + object["values_"]["GEN"],
-        );
+    for (const feature of selected) {
+      const properties = feature.getProperties();
+      if (properties["BEZ"] && properties["GEN"]) {
+        const regionName = properties["BEZ"] + " " + properties["GEN"];
+        if (!landkreise_Bundesländer.includes(regionName)) {
+          landkreise_Bundesländer.push(regionName);
+        }
+      }
     }
     //landkreise_Bundesländer.forEach((x, i) => console.log(x));
     //console.log('landkreise und bundesländer');
@@ -836,7 +844,7 @@ function updateNavigationButtons() {
 }
 
 function createPagedContent(contentArray) {
-    // pages = []; // Reset pages array
+    pages = []; // Reset pages array
     const itemsPerPage = 1; // Define how many items per page
 
     for (let i = 0; i < contentArray.length; i += itemsPerPage) {
@@ -1159,20 +1167,56 @@ function handleIconSelection(feature, content) {
 
 function handleFeatureSelection(feature, content) {
   if (make_Selections == 0) {
+    const properties = feature.getProperties();
+    let regionName = "";
+    if (properties["BEZ"] && properties["GEN"]) {
+      regionName = properties["BEZ"] + " " + properties["GEN"];
+    }
+
     if (selected.has(feature)) {
       selected.delete(feature);
       console.log("Deleted selected");
       feature.setStyle(null); // Reset to the default style
       featureContentMap.delete(feature.getId());
-      landkreise_Bundesländer = [];
+      // Remove regionName from landkreise_Bundesländer
+      const index = landkreise_Bundesländer.indexOf(regionName);
+      if (index > -1) {
+        landkreise_Bundesländer.splice(index, 1);
+      }
     } else {
       selected.add(feature);
       feature.setStyle(highlightStyle); // Apply the highlight style
       featureContentMap.set(feature.getId(), content);
+      // Add regionName to landkreise_Bundesländer if not already there
+      if (regionName && !landkreise_Bundesländer.includes(regionName)) {
+        landkreise_Bundesländer.push(regionName);
+      }
     }
   }
   updateFeatureDisplay(); // Ensure the display is updated after each selection
 }
+
+// THis one works
+// function handleFeatureSelection(feature, content) {
+//   if (make_Selections == 0) {
+//     if (selected.has(feature)) {
+//       selected.delete(feature);
+//       console.log("Deleted selected");
+//       feature.setStyle(null); // Reset to the default style
+//       featureContentMap.delete(feature.getId());
+//       landkreise_Bundesländer = [];
+//     } else {
+//       selected.add(feature);
+//       feature.setStyle(highlightStyle); // Apply the highlight style
+//       featureContentMap.set(feature.getId(), content);
+//     }
+//   }
+//   updateFeatureDisplay(); // Ensure the display is updated after each selection
+
+//   // Update potential analysis with current selections
+//   const activeLayer = getActiveLayer();
+
+// }
 
 //let contentArray= [];
 
@@ -1260,18 +1304,35 @@ slider.addEventListener("input", function () {
 
 const dwd_Nodata_Meldung = document.getElementById("dwd_Nodata_Meldung");
 
+// Function to determine the active layer (Bundesland, Landkreis, or None)
+function getActiveLayer() {
+  if (vectorLayer != null && vectorLayer.getVisible()) {
+    return "Bundesland";
+  } else if (vectorLayer_landkreis != null && vectorLayer_landkreis.getVisible()) {
+    return "Landkreis";
+  } else {
+    return "None";
+  }
+}
+
+
+
 document.getElementById("dwd").addEventListener("click", function (event) {
   event.preventDefault();
+
+  console.log('Sonneneinstrahlung laden button clicked');
+
   if (geotiff != null) {
-    geotiff == null;
+    geotiff = null;
     map.removeLayer(geotiffLayer);
   }
   if (geotiff_gray != null) {
-    geotiff_gray == null;
+    geotiff_gray = null;
     map.removeLayer(geotiff_gray_layer);
   }
   const year = document.getElementById("year").value;
   let month = document.getElementById("month").value;
+  const dwd_Nodata_Meldung = document.getElementById("dwd_Nodata_Meldung");
   if (
     year == "2024" &&
     (month == "07" ||
@@ -1281,14 +1342,18 @@ document.getElementById("dwd").addEventListener("click", function (event) {
       month == "11" ||
       month == "12"))
     {
-    
       dwd_Nodata_Meldung.innerText = "Noch nicht verfügbar. Es wird Juni 2024 gezeigt.";
       month = "06";
-      }
-    geotiff = new GeoTIFF({
-      sources: [
+    } else {
+      dwd_Nodata_Meldung.innerText = ""; // Clear any previous message
+    }
+
+  rasterCode = year + month;
+
+  geotiff = new GeoTIFF({
+    sources: [
       {
-        url: "data/geotiffs/" + year + month + "_rgb.tif",
+        url: "data/geotiffs/" + rasterCode + "_rgb.tif",
       },
     ],
   });
@@ -1298,8 +1363,7 @@ document.getElementById("dwd").addEventListener("click", function (event) {
       {
         url:
           "data/geotiffs/grids_germany_monthly_radiation_direct_" +
-          year +
-          month +
+          rasterCode +
           "_3857.tif",
       },
     ],
@@ -1307,28 +1371,353 @@ document.getElementById("dwd").addEventListener("click", function (event) {
 
   geotiffLayer = new TileLayer({
     source: geotiff,
+    opacity: 0.5,
   });
 
   geotiff_gray_layer = new TileLayer({
     source: geotiff_gray,
+    opacity: 0.5,
   });
 
-  geotiff_gray_layer.setOpacity(0);
   map.addLayer(geotiffLayer);
   map.addLayer(geotiff_gray_layer);
-});
+
+  document.getElementById("dwdSlider").value = 0.5; // Reset slider to 0.5
+
+  // Determine the active layer (None, Bundesland, or Landkreis)
+  const activeLayer = getActiveLayer();
+  console.log('Active Layer:', activeLayer);
+
+  // Fetch and display the radiation data based on the active layer
+  totalRadiationGermany = 0;
+
+  // Fetch total radiation for Germany
+  fetch("http://127.0.0.1:5000/calculate_total_radiation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rasterCode: rasterCode }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error('Failed to fetch total radiation:', response.statusText);
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error);
+        });
+      }
+      return response.json();
+    })
+    .then((data) => {
+      totalRadiationGermany = data.total_radiation;
+      console.log('Total Radiation Germany:', totalRadiationGermany);
+
+      // Display the total radiation in the radiation info window
+      displayRadiationData(totalRadiationGermany, rasterCode)
+
+    })
+      // Update potential analysis based on the active layer
+      .catch((error) => {
+        console.error('Error fetching total radiation:', error);
+        alert('Error fetching total radiation: ' + error.message);
+      });
+  });
+
+
+// Function to handle the potential analysis based on the active layer
+function performPotentialAnalysis(totalRadiationGermany, rasterCode) {
+  const activeLayer = getActiveLayer();
+  console.debug("Active Layer: ", activeLayer)
+
+  if (!activeLayer || activeLayer === "None") {
+    alert("Bitte wählen Sie einen Layer (Bundesländer oder Landkreise) und selektieren Sie die Regionen für die Analyse.");
+    return;
+  }
+  const selectedRegions = landkreise_Bundesländer;
+
+  if (selectedRegions.length === 0) {
+    alert("Bitte wählen Sie zuerst Bundesländer oder Landkreise aus, bevor Sie die Analyse durchführen.");
+    return;
+  }
+
+   // Fetch data for the selected regions
+   fetchRegionRadiationData(activeLayer, rasterCode, landkreise_Bundesländer)
+   .then((regionData) => {
+     // Display the analysis with the fetched data
+     displayAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode);
+   })
+   .catch((error) => {
+     console.error('Error fetching radiation data:', error);
+     alert('Fehler beim Abrufen der Strahlungsdaten: ' + error.message);
+   });
+}
+
+function fetchRegionRadiationData(activeLayer, rasterCode) {
+  if (activeLayer === "Bundesland") {
+    const selectedBundeslaender = landkreise_Bundesländer;
+    console.debug("selectedBundeslaender: ", selectedBundeslaender)
+    if (selectedBundeslaender.length === 0) {
+      return Promise.reject(new Error("Keine Bundesländer ausgewählt."));
+    }
+    return fetch("http://127.0.0.1:5000/calculate_radiation_bundesland", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rasterCode: rasterCode,
+        bundeslaender: selectedBundeslaender,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          console.error('Failed to fetch radiation by Bundesland:', response.statusText);
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error);
+          });
+        }
+        return response.json();
+      });
+  } else if (activeLayer === "Landkreis") {
+    const selectedLandkreise = landkreise_Bundesländer;
+    console.debug("selectedLandkreise: ", selectedLandkreise)
+    if (selectedLandkreise.length === 0) {
+      return Promise.reject(new Error("Keine Landkreise ausgewählt."));
+    }
+    return fetch("http://127.0.0.1:5000/calculate_radiation_landkreis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rasterCode: rasterCode,
+        landkreise: selectedLandkreise,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          console.error('Failed to fetch radiation by Landkreis:', response.statusText);
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error);
+          });
+        }
+        return response.json();
+      });
+  } else {
+    return Promise.reject(new Error("Kein aktiver Layer ausgewählt."));
+  }
+}
+
+
+function displayAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode) {
+  let analysisInfo = document.getElementById("analysisInfo");
+  if (!analysisInfo) {
+    analysisInfo = document.createElement("div");
+    analysisInfo.id = "analysisInfo";
+    analysisInfo.style.position = "absolute";
+    analysisInfo.style.top = "150px"; // Position below the radiationInfo
+    analysisInfo.style.left = "10px";
+    analysisInfo.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+    analysisInfo.style.padding = "10px";
+    analysisInfo.style.zIndex = 1000;
+    analysisInfo.style.border = "1px solid #ccc";
+    analysisInfo.style.borderRadius = "5px";
+    analysisInfo.style.maxWidth = "350px";
+    analysisInfo.style.fontSize = "14px";
+    document.body.appendChild(analysisInfo);
+  }
+
+  let pages = [];
+  let pageIndex = 0;
+
+  if (regionData && Array.isArray(regionData) && regionData.length > 0) {
+    regionData.forEach((region, index) => {
+      const percentage = ((region.total_radiation / totalRadiationGermany) * 100).toFixed(2);
+
+      // Convert rasterCode to month and year in MM YYYY format
+      const year = rasterCode.substring(0, 4);
+      const month = rasterCode.substring(4, 6);
+
+      let content = `<div>
+        <h4>${region.GEN} ${month}/${year}</h4>
+        <p><strong>Aggregierte Strahlung:</strong> ${region.total_radiation.toLocaleString()}  kWh/m²</p>
+        <p><strong>Anteil an Deutschland:</strong> ${percentage}%</p>
+        <button id="prevAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Vorherige Seite</button>
+        <button id="nextAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Nächste Seite</button>
+      </div>`;
+
+      pages.push(content);
+    });
+
+    // Function to show the current page
+    function showAnalysisPage(index) {
+      analysisInfo.innerHTML = pages[index];
+
+      // Add event listeners to buttons
+      const prevBtn = document.getElementById(`prevAnalysisPageBtn_${index}`);
+      if (prevBtn) {
+        prevBtn.addEventListener("click", function () {
+          if (pageIndex > 0) {
+            pageIndex--;
+            showAnalysisPage(pageIndex);
+          }
+        });
+      }
+
+      const nextBtn = document.getElementById(`nextAnalysisPageBtn_${index}`);
+      if (nextBtn) {
+        nextBtn.addEventListener("click", function () {
+          if (pageIndex < pages.length - 1) {
+            pageIndex++;
+            showAnalysisPage(pageIndex);
+          }
+        });
+      }
+    }
+
+    // Start by showing the first page
+    showAnalysisPage(pageIndex);
+  } else {
+    analysisInfo.innerHTML = "<p>Keine Daten für ausgewählte Regionen verfügbar.</p>";
+  }
+}
+
+// Function to display radiation data with the new button and headings
+function displayRadiationData(totalRadiationGermany, rasterCode) {
+  // Create or update the UI element to show the data
+  let radiationInfo = document.getElementById("radiationInfo");
+  if (!radiationInfo) {
+    radiationInfo = document.createElement("div");
+    radiationInfo.id = "radiationInfo";
+    radiationInfo.style.position = "absolute";
+    radiationInfo.style.top = "10px";
+    radiationInfo.style.left = "10px";
+    radiationInfo.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+    radiationInfo.style.padding = "10px";
+    radiationInfo.style.zIndex = 1000;
+    radiationInfo.style.border = "1px solid #ccc";
+    radiationInfo.style.borderRadius = "5px";
+    radiationInfo.style.maxWidth = "350px";
+    radiationInfo.style.fontSize = "14px";
+    document.body.appendChild(radiationInfo);
+  }
+
+  // Build the initial content
+  let content = `<h2>Solarpotentialanalyse</h2>`;
+
+  content += `<p><strong>Gesamt Deutschland:</strong> ${totalRadiationGermany.toFixed(2)} kWh/m²</p>`;
+
+ // Ensure the button is only added once
+  if (!document.getElementById("performPotentialAnalysisBtn")) {
+    content += `<button id="performPotentialAnalysisBtn" class="btn btn-primary btn-sm">Solarpotentialanalyse durchführen</button>`;
+  }
+
+  radiationInfo.innerHTML = content;
+
+  // Attach event listener if the button exists
+  const analysisButton = document.getElementById("performPotentialAnalysisBtn");
+  if (analysisButton) {
+    // const activeLayer = getActiveLayer();
+    // console.debug("Active Layer: ", activeLayer);
+    analysisButton.addEventListener("click", function() {
+      performPotentialAnalysis(totalRadiationGermany, rasterCode);
+    });
+  }
+}
+
+
+// // Function to perform potential analysis and display selected regions
+// function performPotentialAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode) {
+//   let analysisInfo = document.getElementById("analysisInfo");
+//   if (!analysisInfo) {
+//     analysisInfo = document.createElement("div");
+//     analysisInfo.id = "analysisInfo";
+//     analysisInfo.style.position = "absolute";
+//     analysisInfo.style.top = "150px"; // Position below the radiationInfo
+//     analysisInfo.style.left = "10px";
+//     analysisInfo.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+//     analysisInfo.style.padding = "10px";
+//     analysisInfo.style.zIndex = 1000;
+//     analysisInfo.style.border = "1px solid #ccc";
+//     analysisInfo.style.borderRadius = "5px";
+//     analysisInfo.style.maxWidth = "300px";
+//     analysisInfo.style.fontSize = "14px";
+//     document.body.appendChild(analysisInfo);
+//   }
+
+//   let pages = [];
+//   let pageIndex = 0;
+
+
+
+//   if (regionData && Array.isArray(regionData) && regionData.length > 0) {
+//     regionData.forEach((region) => {
+//       const percentage = ((region.total_radiation / totalRadiationGermany) * 100).toFixed(2);
+
+//       let content = `<div>
+//         <h3>${region.GEN}</h3>
+//         <p><strong>Aggregierte Strahlung:</strong> ${region.total_radiation.toFixed(2)} kWh/m²</p>
+//         <p><strong>Anteil an Deutschland:</strong> ${percentage}%</p>
+//         <button id="prevAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Vorherige Seite</button>
+//         <button id="nextAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Nächste Seite</button>
+//       </div>`;
+
+//       pages.push(content);
+//     });
+
+//     // Function to show the current page
+//     function showAnalysisPage(index) {
+//       analysisInfo.innerHTML = pages[index];
+
+//       // Add event listeners to buttons
+//       const prevBtn = document.getElementById(`prevAnalysisPageBtn_${index}`);
+//       if (prevBtn) {
+//         prevBtn.addEventListener("click", function () {
+//           if (pageIndex > 0) {
+//             pageIndex--;
+//             showAnalysisPage(pageIndex);
+//           }
+//         });
+//       }
+
+//       const nextBtn = document.getElementById(`nextAnalysisPageBtn_${index}`);
+//       if (nextBtn) {
+//         nextBtn.addEventListener("click", function () {
+//           if (pageIndex < pages.length - 1) {
+//             pageIndex++;
+//             showAnalysisPage(pageIndex);
+//           }
+//         });
+//       }
+//     }
+
+//     // Start by showing the first page
+//     showAnalysisPage(pageIndex);
+//   } else {
+//     analysisInfo.innerHTML = "<p>Keine Daten für ausgewählte Regionen verfügbar.</p>";
+//   }
+// }
 
 document.getElementById("hideDWD").addEventListener("click", function (event) {
   event.preventDefault();
 
-  if (geotiffLayer != null) {
+  if (geotiffLayer) {
     map.removeLayer(geotiffLayer);
-    geotiff = null;
     geotiffLayer = null;
+  }
+  if (geotiff_gray_layer) {
     map.removeLayer(geotiff_gray_layer);
-    geotiff_gray = null;
     geotiff_gray_layer = null;
   }
+
+  // Remove the radiation info window
+  let radiationInfo = document.getElementById("radiationInfo");
+  if (radiationInfo) {
+    radiationInfo.parentNode.removeChild(radiationInfo);
+  }
+
+   // Remove the analysis info window
+   let analysisInfo = document.getElementById("analysisInfo");
+   if (analysisInfo) {
+     analysisInfo.parentNode.removeChild(analysisInfo);
+   }
+
+  // Reset totalRadiationGermany
+  totalRadiationGermany = null;
 });
 
 //3D-Anbindung

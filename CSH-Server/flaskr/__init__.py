@@ -10,6 +10,10 @@ from flask import g
 from flask import Flask
 from flask_caching import Cache
 import tempfile
+import rasterio
+from rasterio.mask import mask
+import geopandas as gpd
+from shapely.geometry import mapping
 
 # Initialize the logger with timestamps
 logging.basicConfig(
@@ -19,14 +23,101 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def get_raster_path(raster_code):
+    """
+    Constructs the raster file path based on the provided raster code.
+    """
+    # Adjust the path according to your directory structure
+    year_month = raster_code  # e.g., '202306'
+    raster_filename = f"grids_germany_monthly_radiation_direct_{year_month}_3857.tif"
+    raster_path = os.path.join('flaskr', 'static', 'geotiffs', raster_filename)
+    logging.debug(f"Constructed raster path: {raster_path}")
+
+    if not os.path.exists(raster_path):
+        logging.error(f"Raster file not found at path: {raster_path}")
+        return jsonify({'error': 'Raster file not found'}), 404
+    
+    return raster_path
+
+
+
+def calculate_zonal_stats(raster_path, vector_path, zone_attribute):
+    """
+    Calculates the total radiation for each zone defined in the vector data.
+
+    Args:
+        raster_path (str): Path to the raster file.
+        vector_path (str): Path to the vector file (GeoJSON).
+        zone_attribute (str): The attribute in the vector data to identify zones.
+
+    Returns:
+        List[Dict]: A list of dictionaries containing zone names and total radiation.
+    """
+    # Read the vector data
+    zones = gpd.read_file(vector_path)
+
+    # Open the raster data
+    with rasterio.open(raster_path) as src:
+        zones = zones.to_crs(src.crs) 
+        results = {}
+        for index, row in zones.iterrows():
+            geometry = [mapping(row['geometry'])]
+            try:
+                out_image, out_transform = mask(src, geometry, crop=True)
+                out_image = out_image.squeeze()
+                data = out_image.ravel()
+                data = data[data != src.nodata]  # Exclude NoData values
+                total_radiation = data.sum()
+                total_radiation = int(total_radiation) 
+                
+                # Get the zone name
+                zone_name = row[zone_attribute]
+                
+                # Add total_radiation to the zone, summing if it already exists
+                if zone_name in results:
+                    results[zone_name] += total_radiation
+                else:
+                    results[zone_name] = total_radiation
+
+            except Exception as e:
+                logging.error(f"Error processing zone {row[zone_attribute]}: {e}")
+                continue
+    
+    # Convert the results dictionary to a list of dicts
+    final_results = [{'GEN': zone, 'total_radiation': radiation} for zone, radiation in results.items()]
+
+    
+    return final_results
+
+
+def normalize_name(name):
+    # Definiert die Präfixe, die entfernt werden sollen
+    prefixes = ["Stadt", "Landkreis", "Freistaat", "Land", "Kreis"]
+    
+    # Prüft, ob der Name mit einem der Präfixe beginnt
+    for prefix in prefixes:
+        if name.startswith(prefix):
+            # Entfernt das Präfix und führende Leerzeichen
+            name = name[len(prefix):].strip()
+            # Gibt das letzte Wort des modifizierten Namens zurück
+            return name.split()[-1]
+    
+    # Gibt den ursprünglichen Namen zurück, falls kein Präfix gefunden wurde
+    return name
+
+
+
 
 # App Factory
 def create_app(test_config=None):
     # Create and configure the Flask app
     app = Flask(__name__, instance_relative_config=True)
     app.logger.setLevel(logging.DEBUG)
+    logging.debug('Flask app created and debug logging enabled')
     app.config["MONGO_URI"] = "mongodb://localhost:27017/"
-    CORS(app, support_credentials=True)
+    # CORS(app, support_credentials=True)
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+    
     """
     mongo = PyMongo(app)
 
@@ -481,6 +572,115 @@ def create_app(test_config=None):
             response=orjson.dumps(solar_geojson),
             mimetype="application/json"
         )
+    
+
+    ## Trying out
+    @app.route('/calculate_total_radiation', methods=['POST'])
+    @cross_origin(supports_credentials=True)
+    def calculate_total_radiation():
+        """
+        Calculates the total radiation for the whole country based on the provided raster code.
+        """
+        data = request.get_json()
+        raster_code = data.get('rasterCode')
+        logging.debug(f"Received raster_code: {raster_code}")
+        if not raster_code:
+            return jsonify({'error': 'Missing rasterCode'}), 400
+
+        raster_path = get_raster_path(raster_code)
+        if not os.path.exists(raster_path):
+            return jsonify({'error': 'Raster file not found'}), 404
+
+        try:
+            with rasterio.open(raster_path) as src:
+                data = src.read(1)
+                data = data[data != src.nodata]
+                total_radiation = data.sum()
+                logging.debug(f"Total_Radiation: {total_radiation} and type {type(total_radiation)}" )
+                total_radiation = int(total_radiation)
+            return jsonify({'total_radiation': total_radiation})
+        except Exception as e:
+            logging.error(f"Error calculating total radiation: {e}")
+            return jsonify({'error': 'Error processing raster data'}), 500
+        
+
+    @app.route('/calculate_radiation_bundesland', methods=['POST'])
+    @cross_origin(supports_credentials=True)
+    def calculate_radiation_bundesland():
+        """
+        Calculates the total radiation for selected Bundesländer based on the provided raster code.
+        """
+        data = request.get_json()
+        selected_bundeslaender = data.get('bundeslaender')
+        logging.debug(f"Selected Bundesländer: {selected_bundeslaender}")
+        raster_code = data.get('rasterCode')
+        if not raster_code:
+            return jsonify({'error': 'Missing rasterCode'}), 400
+        if not selected_bundeslaender:
+            return jsonify({'error': 'Missing bundeslaender'}), 400
+
+        raster_path = get_raster_path(raster_code)
+        if not os.path.exists(raster_path):
+            return jsonify({'error': 'Raster file not found'}), 404
+
+        # Path to the Bundesländer GeoJSON file
+        vector_path = os.path.join('flaskr','static', 'bundeslaender_simplify0.geojson')
+
+        # def normalize_name(name):
+        #     # Splitting by both space and hyphen and taking the last part
+        #     return name.split()[-1] if " " in name else name
+
+
+        try:
+            results = calculate_zonal_stats(raster_path, vector_path, 'GEN')  # 'GEN' is the name attribute
+            normalized_selected = [normalize_name(bundesland) for bundesland in selected_bundeslaender]
+            # Filter results based on selected Bundesländer
+            filtered_results = [res for res in results if res['GEN'] in normalized_selected]
+            logging.debug({f"filtered_results: {filtered_results}"})
+            return jsonify(filtered_results)
+        except Exception as e:
+            logging.error(f"Error calculating radiation by Bundesland: {e}")
+            return jsonify({'error': 'Error processing data'}), 500
+        
+
+    @app.route('/calculate_radiation_landkreis', methods=['POST'])
+    @cross_origin(supports_credentials=True)
+    def calculate_radiation_landkreis():
+        """
+        Calculates the total radiation for selected Landkreise based on the provided raster code.
+        """
+        data = request.get_json()
+        selected_landkreise = data.get('landkreise')
+        logging.debug("selected_landkreise: ", selected_landkreise)
+
+        raster_code = data.get('rasterCode')
+        if not raster_code:
+            return jsonify({'error': 'Missing rasterCode'}), 400
+        if not selected_landkreise:
+            return jsonify({'error': 'Missing landkreise'}), 400
+
+        raster_path = get_raster_path(raster_code)
+        if not os.path.exists(raster_path):
+            return jsonify({'error': 'Raster file not found'}), 404
+
+        # Path to the Landkreise GeoJSON file
+        vector_path = os.path.join('flaskr', 'static', 'landkreise_simplify0.geojson')
+
+        # def normalize_name(name):
+        #     # Splitting by both space and hyphen and taking the last part
+        #     return name.split()[-1] if " " in name else name
+
+        try:
+            results = calculate_zonal_stats(raster_path, vector_path, 'GEN')  # 'GEN' is the name attribute
+            normalized_selected = [normalize_name(bundesland) for bundesland in selected_landkreise]
+            logging.debug(f"Results: {results}")
+            logging.debug(f"selected_landkreise: {normalized_selected}")
+            # Filter results based on selected Landkreise
+            filtered_results = [res for res in results if res['GEN'] in normalized_selected]
+            return jsonify(filtered_results)
+        except Exception as e:
+            logging.error(f"Error calculating radiation by Landkreis: {e}")
+            return jsonify({'error': 'Error processing data'}), 500
 
 
     ## Works
@@ -604,5 +804,6 @@ def create_app(test_config=None):
 
 # Create and run the Flask app
 app = create_app()
+app.logger.setLevel(logging.DEBUG)
 if __name__ == "__main__":
     app.run()
