@@ -333,22 +333,6 @@
     <div id="output"></div>
     <div id="coordinateOutput"></div>
 
-<!--
-    <div class="toolbar">
-      <h3>Featuremanager</h3>
-      <i
-        class="bi bi-info-circle info-icon"
-        data-bs-toggle="modal"
-        data-bs-target="#infoModalFeatureManager"
-      ></i>
-      <button id="landkreis_bundesland_lickable" class="btn btn-primary">
-        Landkreise oder Bundesland selektieren
-      </button>
-      <button id="Solarpanels_clickable" class="btn btn-primary">
-        Solarpanels selektieren
-      </button>
-    </div>
--->
     <div id="dropdownToggle">
       <span>Interaktive Kartenoptionen</span>
       <i id="dropdownIcon" class="fas fa-chevron-down"></i>
@@ -482,7 +466,15 @@ aria-hidden="true"
       ></button>
     </div>
     <div class="modal-body">
-      <!-- Text will be provided in the next section -->
+      <p>In diesem Abschnitt können Sie detaillierte Informationen zum Solarpotential abrufen:</p>
+<ul>
+  <li><strong>Analyse durchführen:</strong> Wählen Sie zunächst die gewünschten Regionen (Bundesländer oder Landkreise) auf der Karte aus und klicken Sie auf <strong>Solarpotentialanalyse durchführen</strong>. Die aggregierten Strahlungswerte für die ausgewählten Gebiete werden berechnet.</li>
+  <li><strong>Ergebnisse anzeigen:</strong> Die Analyse zeigt Ihnen die aggregierte Strahlung sowie den Anteil der jeweiligen Region an der Gesamtstrahlung Deutschlands.</li>
+  <li><strong>Navigation:</strong> Nutzen Sie die Schaltflächen <strong>Vorherige Seite</strong> und <strong>Nächste Seite</strong>, um zwischen den Ergebnissen zu blättern. So können Sie Regionen wie Bayern und NRW im gleichen Zeitraum miteinander vergleichen oder die zeitliche Entwicklung des Solarpotentials einer Region über die Jahre hinweg untersuchen.</li>
+  <li><strong>Vergleich:</strong> Führen Sie Analysen für unterschiedliche Monate durch, um saisonale Schwankungen der Sonneneinstrahlung zu erkennen und langfristige Trends zu identifizieren.</li>
+  <li><strong>Schließen:</strong> Verwenden Sie die Schließen-Schaltfläche, um das Analysefenster jederzeit zu schließen.</li>
+</ul>
+<p>Diese Analyse hilft Ihnen, das Solarpotential einzelner Regionen zu bewerten. Zudem können Sie die Strahlungswerte mit weiteren relevanten Kennzahlen der Regionen, wie in der Feature-Box angezeigt oder über aggregierte Informationen abrufbar, abgleichen. So können Sie beispielsweise für Bayern sehen, wie viele kWh/m² an Sonneneinstrahlung verfügbar sind und anhand von Daten wie der Anzahl installierter Solarpanels und der Nettonennleistung bewerten, wie effektiv das vorhandene Solarpotential genutzt wird.</p>
     </div>
     <div class="modal-footer">
       <button
@@ -559,7 +551,7 @@ aria-hidden="true"
           </div>
           <div class="modal-body">
             <p>In diesem Bereich können Sie geografische Verwaltungseinheiten wie Bundesländer und Landkreise auf der Karte ein- und ausblenden. Dies ermöglicht es Ihnen, gezielt Regionen auszuwählen und auf detaillierte Informationen zuzugreifen.</p> <p>Die ausgewählten Einheiten werden Ihnen im Fenster "Ausgewählte Einheiten" übersichtlich angezeigt. Dort erhalten Sie eine kompakte Zusammenfassung der Solardaten für die ausgewählten Gebiete und können diese miteinander vergleichen.</p>
-        .</div>
+        </div>
           <div class="modal-footer">
             <button
               type="button"
@@ -596,9 +588,9 @@ aria-hidden="true"
           </div>
           <div class="modal-body"><p>In diesem Abschnitt können Sie Daten zu Solarpanel-Installationen visualisieren:</p>
             <ul>
-              <li><strong>Bundesland-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Bundesländer.</li>
-              <li><strong>Landkreis-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Landkreise.</li>
-              <li><strong>Solarpanels für ausgewählte Gebiete laden:</strong> Lädt Solarpanel-Daten für die von Ihnen ausgewählten Regionen. Dies kann etwas Zeit beanspruchen!</li>
+              <li><strong>Bundesland-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Bundesländer. Mit einem Click auf die Sonnen-Icons lassen sich detaillierte Informationen anzeigen</li>
+              <li><strong>Landkreis-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Landkreise. Mit einem Click auf die Sonnen-Icons lassen sich detaillierte Informationen anzeigen</li>
+              <li><strong>Solarpanels für ausgewählte Gebiete laden:</strong> Lädt alle Solar-Panels für die von Ihnen ausgewählten Regionen. Diese werden dann an ihrem jeweiligen Standort angezeigt und mit einem Click auf die Sonnen-Icons lassen sich detaillierte Informationen anzeigen. Dies kann etwas Zeit beanspruchen!</li>
               <li><strong>Solarpanels von Karte entfernen:</strong> Entfernt alle angezeigten Solarpanel-Daten von der Karte.</li>
             </ul>
             <p>Diese Funktionen helfen Ihnen, aggregierte sowie einzelne Solarpanel-Daten anzuzeigen und zu untersuchen.</p></div>
