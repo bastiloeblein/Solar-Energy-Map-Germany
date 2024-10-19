@@ -1686,10 +1686,10 @@ document.getElementById("hideDWD").addEventListener("click", function (event) {
   event.preventDefault();
 
    // Bild ausblenden
-   const skalaBild = document.getElementById("skalaBild");
-   if (skalaBild) {
-     skalaBild.style.display = "none";
-   }
+  const skalaBild = document.getElementById("skalaBild");
+  if (skalaBild) {
+    skalaBild.style.display = "none";
+  }
 
   if (geotiffLayer) {
     map.removeLayer(geotiffLayer);
