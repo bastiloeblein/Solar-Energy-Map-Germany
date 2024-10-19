@@ -270,6 +270,39 @@
       transform: translate(-50%, -50%);
       z-index: 1000; /* Ensure it appears on top of other elements */
     }
+
+    #mapContainer {
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+#skalaBild {
+  position: absolute;
+  right: 10px; /* Abstand vom rechten Rand */
+  bottom: 60px; /* Abstand vom unteren Rand, um über dem Streifen zu sein */
+  z-index: 1000; /* Über anderen Elementen anzeigen */
+  height: 50%; /* Höhe relativ zur Bildschirmgröße */
+  max-height: 1200px; /* Maximale Höhe */
+}
+
+@media screen and (max-width: 768px) {
+  #skalaBild {
+    height: 25%;
+    max-height: 150px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #skalaBild {
+    height: 30%;
+    max-height: 100px;
+  }
+}
+
     </style>
   </head>
   <body>
@@ -278,6 +311,8 @@
       <a href="#" id="popup-closer" class="ol-popup-closer"></a>
       <div id="popup-content"></div>
     </div>
+
+    <img id="skalaBild" src="images/skala.jpg" alt="Skala" style="display: none;" />
 
     <div id="info-box" class="info-box">
       <button id="previous" class="btn btn-secondary btn-sm">
@@ -425,6 +460,44 @@
       <i id="closeButton" class="bi bi-chevron-up"></i>
     </div>
 
+    <!-- Information Modal for Solarpotentialanalyse -->
+<div
+class="modal fade"
+id="infoModalSolarpotentialanalyse"
+tabindex="-1"
+aria-labelledby="infoModalSolarpotentialanalyseLabel"
+aria-hidden="true"
+>
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="infoModalSolarpotentialanalyseLabel">
+        Informationen zur Solarpotentialanalyse
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="modal"
+        aria-label="Schließen"
+      ></button>
+    </div>
+    <div class="modal-body">
+      <!-- Text will be provided in the next section -->
+    </div>
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-bs-dismiss="modal"
+      >
+        Schließen
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+
 
     <!-- Information Modal for Interactive Options -->
     <div
@@ -484,7 +557,9 @@
               aria-label="Close"
             ></button>
           </div>
-          <div class="modal-body">Informationen zu Organisationseinheiten.</div>
+          <div class="modal-body">
+            <p>In diesem Bereich können Sie geografische Verwaltungseinheiten wie Bundesländer und Landkreise auf der Karte ein- und ausblenden. Dies ermöglicht es Ihnen, gezielt Regionen auszuwählen und auf detaillierte Informationen zuzugreifen.</p> <p>Die ausgewählten Einheiten werden Ihnen im Fenster "Ausgewählte Einheiten" übersichtlich angezeigt. Dort erhalten Sie eine kompakte Zusammenfassung der Solardaten für die ausgewählten Gebiete und können diese miteinander vergleichen.</p>
+        .</div>
           <div class="modal-footer">
             <button
               type="button"
@@ -510,7 +585,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="infoModalSolarpanelsLabel">
-              Informationen zu Solar Panels
+              Informationen zu Solar-Panels
             </h5>
             <button
               type="button"
@@ -519,7 +594,14 @@
               aria-label="Close"
             ></button>
           </div>
-          <div class="modal-body">Informationen zu Solar Panels.</div>
+          <div class="modal-body"><p>In diesem Abschnitt können Sie Daten zu Solarpanel-Installationen visualisieren:</p>
+            <ul>
+              <li><strong>Bundesland-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Bundesländer.</li>
+              <li><strong>Landkreis-Aggregation:</strong> Zeigt aggregierte Solarpanel-Daten für alle Landkreise.</li>
+              <li><strong>Solarpanels für ausgewählte Gebiete laden:</strong> Lädt Solarpanel-Daten für die von Ihnen ausgewählten Regionen. Dies kann etwas Zeit beanspruchen!</li>
+              <li><strong>Solarpanels von Karte entfernen:</strong> Entfernt alle angezeigten Solarpanel-Daten von der Karte.</li>
+            </ul>
+            <p>Diese Funktionen helfen Ihnen, aggregierte sowie einzelne Solarpanel-Daten anzuzeigen und zu untersuchen.</p></div>
           <div class="modal-footer">
             <button
               type="button"
@@ -534,7 +616,7 @@
     </div>
 
     <div id="loadingSpinner" style="display:none;">
-      <img src="spinner.gif" alt="Loading..." />
+      <img src="images/spinner.gif" alt="Loading..." />
     </div>
     
 
@@ -560,7 +642,14 @@
             ></button>
           </div>
           <div class="modal-body">
-            Informationen zur direkten Sonneneinstrahlung.
+            <p>Hier können Sie Daten zur direkten Sonneneinstrahlung für Deutschland laden:</p>
+<ul>
+  <li>Wählen Sie den Zeitraum aus, für den Sie die Strahlungsdaten anzeigen möchten.</li>
+  <li>Klicken Sie auf <strong>Sonneneinstrahlung laden</strong>, um die Daten auf der Karte zu visualisieren.</li>
+  <li>Nutzen Sie den Transparenz-Slider, um die Sichtbarkeit der Strahlungsdaten anzupassen.</li>
+  <li>Mit <strong>Sonneneinstrahlung entfernen</strong> können Sie die angezeigten Strahlungsdaten von der Karte entfernen.</li>
+</ul>
+<p>Anhand der Farbskala können Sie das Energiepotential in den verschiedenen Regionen Deutschlands ablesen. Anhand der Farbabstufungen können Sie erkennen, wie viele kWh/m² an Sonneneinstrahlung in jedem Bereich verfügbar sind, um das Solarpotential besser zu bewerten.</p>
           </div>
           <div class="modal-footer">
             <button

@@ -65,6 +65,7 @@ let activeIconPopover = null;
 
 let rasterCode = null;
 let totalRadiationGermany = 0;
+let analysisResults = []; // Global array to store analysis results
 
 
 
@@ -1322,6 +1323,12 @@ document.getElementById("dwd").addEventListener("click", function (event) {
 
   console.log('Sonneneinstrahlung laden button clicked');
 
+   // Bild anzeigen
+   const skalaBild = document.getElementById("skalaBild");
+   if (skalaBild) {
+     skalaBild.style.display = "block";
+   }
+
   if (geotiff != null) {
     geotiff = null;
     map.removeLayer(geotiffLayer);
@@ -1431,9 +1438,21 @@ function performPotentialAnalysis(totalRadiationGermany, rasterCode) {
     alert("Bitte wählen Sie einen Layer (Bundesländer oder Landkreise) und selektieren Sie die Regionen für die Analyse.");
     return;
   }
-  const selectedRegions = landkreise_Bundesländer;
+  // const selectedRegions = landkreise_Bundesländer;
+  // Re-fetch selected regions
+  landkreise_Bundesländer = [];
+  selected.forEach((feature) => {
+    const properties = feature.getProperties();
+    if (properties["BEZ"] && properties["GEN"]) {
+      const regionName = properties["BEZ"] + " " + properties["GEN"];
+      if (!landkreise_Bundesländer.includes(regionName)) {
+        landkreise_Bundesländer.push(regionName);
+      }
+    }
+  });
 
-  if (selectedRegions.length === 0) {
+
+  if (landkreise_Bundesländer.length === 0) {
     alert("Bitte wählen Sie zuerst Bundesländer oder Landkreise aus, bevor Sie die Analyse durchführen.");
     return;
   }
@@ -1441,13 +1460,22 @@ function performPotentialAnalysis(totalRadiationGermany, rasterCode) {
    // Fetch data for the selected regions
    fetchRegionRadiationData(activeLayer, rasterCode, landkreise_Bundesländer)
    .then((regionData) => {
-     // Display the analysis with the fetched data
-     displayAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode);
-   })
-   .catch((error) => {
-     console.error('Error fetching radiation data:', error);
-     alert('Fehler beim Abrufen der Strahlungsdaten: ' + error.message);
-   });
+    // Store the analysis result
+    analysisResults.push({
+      totalRadiationGermany,
+      regionData,
+      activeLayer,
+      rasterCode,
+      selectedRegions: [...landkreise_Bundesländer],
+    });
+
+    // Display the analysis with all stored results
+    displayAnalysis();
+  })
+  .catch((error) => {
+    console.error('Error fetching radiation data:', error);
+    alert('Fehler beim Abrufen der Strahlungsdaten: ' + error.message);
+  });
 }
 
 function fetchRegionRadiationData(activeLayer, rasterCode) {
@@ -1465,15 +1493,20 @@ function fetchRegionRadiationData(activeLayer, rasterCode) {
         bundeslaender: selectedBundeslaender,
       }),
     })
-      .then((response) => {
-        if (!response.ok) {
-          console.error('Failed to fetch radiation by Bundesland:', response.statusText);
-          return response.json().then((errorData) => {
+    .then((response) => {
+      if (!response.ok) {
+        console.error('Failed to fetch radiation data:', response.statusText);
+        return response.json().then((errorData) => {
+          // If the error indicates no data found, resolve with an empty array
+          if (errorData.error === "No data found") {
+            return [];
+          } else {
             throw new Error(errorData.error);
-          });
-        }
-        return response.json();
-      });
+          }
+        });
+      }
+      return response.json();
+    })
   } else if (activeLayer === "Landkreis") {
     const selectedLandkreise = landkreise_Bundesländer;
     console.debug("selectedLandkreise: ", selectedLandkreise)
@@ -1502,8 +1535,7 @@ function fetchRegionRadiationData(activeLayer, rasterCode) {
   }
 }
 
-
-function displayAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode) {
+function displayAnalysis() {
   let analysisInfo = document.getElementById("analysisInfo");
   if (!analysisInfo) {
     analysisInfo = document.createElement("div");
@@ -1523,57 +1555,83 @@ function displayAnalysis(totalRadiationGermany, regionData, activeLayer, rasterC
 
   let pages = [];
   let pageIndex = 0;
+  
+  // Build pages for all analysis results
+  analysisResults.forEach((result, resultIndex) => {
+    const { totalRadiationGermany, regionData, activeLayer, rasterCode, selectedRegions } = result;
 
-  if (regionData && Array.isArray(regionData) && regionData.length > 0) {
-    regionData.forEach((region, index) => {
-      const percentage = ((region.total_radiation / totalRadiationGermany) * 100).toFixed(2);
+    if (regionData && Array.isArray(regionData) && regionData.length > 0) {
+      regionData.forEach((region) => {
+        const percentage = ((region.total_radiation / totalRadiationGermany) * 100).toFixed(2);
 
-      // Convert rasterCode to month and year in MM YYYY format
+        // Convert rasterCode to month and year in MM/YYYY format
+        const year = rasterCode.substring(0, 4);
+        const month = rasterCode.substring(4, 6);
+
+        let content = `<div>
+          <h4>${region.GEN} ${month}/${year}</h4>
+          <p><strong>Aggregierte Strahlung:</strong> ${region.total_radiation.toLocaleString()}  kWh/m²</p>
+          <p><strong>Anteil an Deutschland:</strong> ${percentage}%</p>
+          <button id="prevAnalysisPageBtn" class="btn btn-primary btn-sm">Vorherige Seite</button>
+          <button id="nextAnalysisPageBtn" class="btn btn-primary btn-sm">Nächste Seite</button>
+          <button id="closeAnalysisBtn" class="btn btn-danger btn-sm">Schließen</button>
+        </div>`;
+
+        pages.unshift(content);
+      });
+    } else {
+      // Handle case where no data is available
       const year = rasterCode.substring(0, 4);
       const month = rasterCode.substring(4, 6);
+      selectedRegions.forEach((regionName) => {
+        let content = `<div>
+          <h4>${regionName} ${month}/${year}</h4>
+          <p>Keine Strahlungsdaten gefunden</p>
+          <button id="prevAnalysisPageBtn" class="btn btn-primary btn-sm">Vorherige Seite</button>
+          <button id="nextAnalysisPageBtn" class="btn btn-primary btn-sm">Nächste Seite</button>
+          <button id="closeAnalysisBtn" class="btn btn-danger btn-sm">Schließen</button>
+        </div>`;
 
-      let content = `<div>
-        <h4>${region.GEN} ${month}/${year}</h4>
-        <p><strong>Aggregierte Strahlung:</strong> ${region.total_radiation.toLocaleString()}  kWh/m²</p>
-        <p><strong>Anteil an Deutschland:</strong> ${percentage}%</p>
-        <button id="prevAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Vorherige Seite</button>
-        <button id="nextAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Nächste Seite</button>
-      </div>`;
+        pages.unshift(content);
+      });
+    }
+  });
 
-      pages.push(content);
-    });
+  // Function to show the current page
+  function showAnalysisPage(index) {
+    analysisInfo.innerHTML = pages[index];
 
-    // Function to show the current page
-    function showAnalysisPage(index) {
-      analysisInfo.innerHTML = pages[index];
-
-      // Add event listeners to buttons
-      const prevBtn = document.getElementById(`prevAnalysisPageBtn_${index}`);
-      if (prevBtn) {
-        prevBtn.addEventListener("click", function () {
-          if (pageIndex > 0) {
-            pageIndex--;
-            showAnalysisPage(pageIndex);
-          }
-        });
-      }
-
-      const nextBtn = document.getElementById(`nextAnalysisPageBtn_${index}`);
-      if (nextBtn) {
-        nextBtn.addEventListener("click", function () {
-          if (pageIndex < pages.length - 1) {
-            pageIndex++;
-            showAnalysisPage(pageIndex);
-          }
-        });
-      }
+    // Add event listeners to buttons
+    const prevBtn = document.getElementById('prevAnalysisPageBtn');
+    if (prevBtn) {
+      prevBtn.addEventListener("click", function () {
+        if (pageIndex > 0) {
+          pageIndex--;
+          showAnalysisPage(pageIndex);
+        }
+      });
     }
 
-    // Start by showing the first page
-    showAnalysisPage(pageIndex);
-  } else {
-    analysisInfo.innerHTML = "<p>Keine Daten für ausgewählte Regionen verfügbar.</p>";
+    const nextBtn = document.getElementById('nextAnalysisPageBtn');
+    if (nextBtn) {
+      nextBtn.addEventListener("click", function () {
+        if (pageIndex < pages.length - 1) {
+          pageIndex++;
+          showAnalysisPage(pageIndex);
+        }
+      });
+    }
+
+    const closeBtn = document.getElementById('closeAnalysisBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        analysisInfo.parentNode.removeChild(analysisInfo);
+      });
+    }
   }
+
+  // Start by showing the first page
+  showAnalysisPage(pageIndex);
 }
 
 // Function to display radiation data with the new button and headings
@@ -1596,104 +1654,42 @@ function displayRadiationData(totalRadiationGermany, rasterCode) {
     document.body.appendChild(radiationInfo);
   }
 
+  let infoButton = `<i class="bi bi-info-circle info-icon" data-bs-toggle="modal" data-bs-target="#infoModalSolarpotentialanalyse"></i>`;
+
   // Build the initial content
-  let content = `<h2>Solarpotentialanalyse</h2>`;
-
+  // Use Flexbox to align the header and button
+  let content = `
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>Solarpotentialanalyse</h2>
+    ${infoButton}
+  </div>
+  `;
   content += `<p><strong>Gesamt Deutschland:</strong> ${totalRadiationGermany.toFixed(2)} kWh/m²</p>`;
-
- // Ensure the button is only added once
-  if (!document.getElementById("performPotentialAnalysisBtn")) {
-    content += `<button id="performPotentialAnalysisBtn" class="btn btn-primary btn-sm">Solarpotentialanalyse durchführen</button>`;
-  }
+  content += `<button id="performPotentialAnalysisBtn" class="btn btn-primary btn-sm">Solarpotentialanalyse durchführen</button>`;
 
   radiationInfo.innerHTML = content;
 
   // Attach event listener if the button exists
   const analysisButton = document.getElementById("performPotentialAnalysisBtn");
   if (analysisButton) {
-    // const activeLayer = getActiveLayer();
-    // console.debug("Active Layer: ", activeLayer);
-    analysisButton.addEventListener("click", function() {
+    // Remove existing event listeners to prevent multiple bindings
+    const newButton = analysisButton.cloneNode(true);
+    analysisButton.parentNode.replaceChild(newButton, analysisButton);
+
+    newButton.addEventListener("click", function() {
       performPotentialAnalysis(totalRadiationGermany, rasterCode);
     });
   }
 }
 
-
-// // Function to perform potential analysis and display selected regions
-// function performPotentialAnalysis(totalRadiationGermany, regionData, activeLayer, rasterCode) {
-//   let analysisInfo = document.getElementById("analysisInfo");
-//   if (!analysisInfo) {
-//     analysisInfo = document.createElement("div");
-//     analysisInfo.id = "analysisInfo";
-//     analysisInfo.style.position = "absolute";
-//     analysisInfo.style.top = "150px"; // Position below the radiationInfo
-//     analysisInfo.style.left = "10px";
-//     analysisInfo.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
-//     analysisInfo.style.padding = "10px";
-//     analysisInfo.style.zIndex = 1000;
-//     analysisInfo.style.border = "1px solid #ccc";
-//     analysisInfo.style.borderRadius = "5px";
-//     analysisInfo.style.maxWidth = "300px";
-//     analysisInfo.style.fontSize = "14px";
-//     document.body.appendChild(analysisInfo);
-//   }
-
-//   let pages = [];
-//   let pageIndex = 0;
-
-
-
-//   if (regionData && Array.isArray(regionData) && regionData.length > 0) {
-//     regionData.forEach((region) => {
-//       const percentage = ((region.total_radiation / totalRadiationGermany) * 100).toFixed(2);
-
-//       let content = `<div>
-//         <h3>${region.GEN}</h3>
-//         <p><strong>Aggregierte Strahlung:</strong> ${region.total_radiation.toFixed(2)} kWh/m²</p>
-//         <p><strong>Anteil an Deutschland:</strong> ${percentage}%</p>
-//         <button id="prevAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Vorherige Seite</button>
-//         <button id="nextAnalysisPageBtn_${index}" class="btn btn-primary btn-sm">Nächste Seite</button>
-//       </div>`;
-
-//       pages.push(content);
-//     });
-
-//     // Function to show the current page
-//     function showAnalysisPage(index) {
-//       analysisInfo.innerHTML = pages[index];
-
-//       // Add event listeners to buttons
-//       const prevBtn = document.getElementById(`prevAnalysisPageBtn_${index}`);
-//       if (prevBtn) {
-//         prevBtn.addEventListener("click", function () {
-//           if (pageIndex > 0) {
-//             pageIndex--;
-//             showAnalysisPage(pageIndex);
-//           }
-//         });
-//       }
-
-//       const nextBtn = document.getElementById(`nextAnalysisPageBtn_${index}`);
-//       if (nextBtn) {
-//         nextBtn.addEventListener("click", function () {
-//           if (pageIndex < pages.length - 1) {
-//             pageIndex++;
-//             showAnalysisPage(pageIndex);
-//           }
-//         });
-//       }
-//     }
-
-//     // Start by showing the first page
-//     showAnalysisPage(pageIndex);
-//   } else {
-//     analysisInfo.innerHTML = "<p>Keine Daten für ausgewählte Regionen verfügbar.</p>";
-//   }
-// }
-
 document.getElementById("hideDWD").addEventListener("click", function (event) {
   event.preventDefault();
+
+   // Bild ausblenden
+   const skalaBild = document.getElementById("skalaBild");
+   if (skalaBild) {
+     skalaBild.style.display = "none";
+   }
 
   if (geotiffLayer) {
     map.removeLayer(geotiffLayer);
@@ -1720,9 +1716,6 @@ document.getElementById("hideDWD").addEventListener("click", function (event) {
   totalRadiationGermany = null;
 });
 
-//3D-Anbindung
-//Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4NWFkMThkYy0wZWY5LTQwNTctYmYzYy00NDAxNmJlMjdmZTkiLCJpZCI6MjE2ODE1LCJpYXQiOjE3MTYzMTAzODR9.q4XdtW3XT4ldPzBYoCHcMt-rYEj-raqXOR7oEBgyctk';
-
 const closeButton = document.getElementById("closeButton");
 
 dropdownToggle.addEventListener("click", function () {
@@ -1735,12 +1728,4 @@ closeButton.addEventListener("click", function () {
   dropdownToggle.style.display = "flex"; // Zeigt die Dropdown-Toggle-Leiste wieder an
 });
 
-// document.querySelectorAll(".toolbar button").forEach((button) => {
-//   button.addEventListener("click", function () {
-//     document
-//       .querySelectorAll(".toolbar button")
-//       .forEach((btn) => btn.classList.remove("active"));
-//     this.classList.add("active");
-//   });
-// });
 
