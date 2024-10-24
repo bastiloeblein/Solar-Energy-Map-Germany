@@ -7,4 +7,6 @@ CSH-Server/working_old_code/
 solar_energie_dw/data/
 solar_energie_dw/venv/
 solar_energie_dw/node_modules
+Preprocessing/Marktstammdatenregister/data_raw/
+Stromerzeuger_*
 
