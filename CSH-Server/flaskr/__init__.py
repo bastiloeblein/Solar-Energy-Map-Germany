@@ -123,6 +123,12 @@ def create_app(test_config=None):
     app.config["CACHE_DIR"] = "flaskr/flask_cache"  # Cache directory
     app.config["CACHE_DEFAULT_TIMEOUT"] = 3600  # Cache timeout set to 1 hour
 
+    # Ensure the cache directory exists
+    cache_dir = app.config["CACHE_DIR"]
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+        logging.info(f"Created cache directory at {cache_dir}")
+
     cache = Cache(app)
 
     if test_config is None:
@@ -202,7 +208,7 @@ def create_app(test_config=None):
         Aggregates data by 'Landkreis' from the 'data.geojson' file and returns the
         aggregated data as a GeoJSON FeatureCollection.
         """
-        with open("flaskr/static/data.geojson") as f:
+        with open("flaskr/static/geojson_data/data.geojson") as f:
             data = json.load(f)
 
         aggregated_data = {}
@@ -278,7 +284,7 @@ def create_app(test_config=None):
         """
         Sends pre-computed aggregation data for Landkreise from 'features_landkreis_agg.geojson'.
         """
-        with open("flaskr/static/features_landkreis_agg.geojson") as f:
+        with open("flaskr/static/geojson_data/features_landkreis_agg.geojson") as f:
             data = json.load(f)
 
         features = []
@@ -320,7 +326,7 @@ def create_app(test_config=None):
         """
         Sends aggregation data for the selected Landkreise from 'features_landkreis_agg.geojson'.
         """
-        with open("flaskr/static/features_landkreis_agg.geojson") as f:
+        with open("flaskr/static/geojson_data/features_landkreis_agg.geojson") as f:
             data = json.load(f)
 
         landkreis_bundesland = request.get_json()
@@ -347,7 +353,7 @@ def create_app(test_config=None):
         Aggregates data by 'Bundesland' from 'data.geojson' and returns the
         aggregated data as a GeoJSON FeatureCollection.
         """
-        with open("flaskr/static/data.geojson") as f:
+        with open("flaskr/static/geojson_data/data.geojson") as f:
             data = json.load(f)
 
         aggregated_data = {}
@@ -417,7 +423,7 @@ def create_app(test_config=None):
 
     @app.route("/send_Computed_bundeslandAggregation", methods=["GET"])
     def send_Computed_bundeslandAggregation():
-        with open("flaskr/static/features_bund_agg.geojson") as f:
+        with open("flaskr/static/geojson_data/features_bund_agg.geojson") as f:
             data = json.load(f)
 
         print(data)
@@ -486,13 +492,13 @@ def create_app(test_config=None):
             )
 
         # Initialize paths with data.geojson as always required
-        paths = ["flaskr/static/data.geojson"]
+        paths = ["flaskr/static/geojson_data/data.geojson"]
 
         # Conditionally load Landkreis or Bundesland aggregation file
         if orgaeinheit == "Landkreis":
-            paths.append("flaskr/static/features_landkreis_agg.geojson")
+            paths.append("flaskr/static/geojson_data/features_landkreis_agg.geojson")
         elif orgaeinheit == "Bundesland":
-            paths.append("flaskr/static/features_bund_agg.geojson")
+            paths.append("flaskr/static/geojson_data/features_bund_agg.geojson")
             landkreise_Bundesländer = [
                 item.split(" ")[-1] for item in landkreise_Bundesländer
             ]  # In order to make matching work
@@ -609,7 +615,7 @@ def create_app(test_config=None):
 
         # Path to the Bundesländer GeoJSON file
         vector_path = os.path.join(
-            "flaskr", "static", "bundeslaender_simplify0.geojson"
+            "flaskr", "static", "geojson_data", "bundeslaender_simplify0.geojson"
         )
 
         # def normalize_name(name):
@@ -654,11 +660,7 @@ def create_app(test_config=None):
             return jsonify({"error": "Raster file not found"}), 404
 
         # Path to the Landkreise GeoJSON file
-        vector_path = os.path.join("flaskr", "static", "landkreise_simplify0.geojson")
-
-        # def normalize_name(name):
-        #     # Splitting by both space and hyphen and taking the last part
-        #     return name.split()[-1] if " " in name else name
+        vector_path = os.path.join("flaskr", "static", "geojson_data", "landkreise_simplify0.geojson")
 
         try:
             results = calculate_zonal_stats(

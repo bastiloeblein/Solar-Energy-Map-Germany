@@ -344,7 +344,7 @@ function addGeoJsonToMapWithBuffering(map, geojsonData) {
     }
   
     // Create and add new layers based on the provided GeoJSON data
-    const iconUrl = "/data/sun.jpeg"; // URL for the icon
+    const iconUrl = "/data/images/sun.jpeg"; 
   
     const iconStyle = new Style({
       image: new Icon({
