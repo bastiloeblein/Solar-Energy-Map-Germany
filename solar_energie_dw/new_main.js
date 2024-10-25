@@ -68,7 +68,6 @@ let totalRadiationGermany = 0;
 let analysisResults = []; // Global array to store analysis results
 
 
-
 map.on("click", function (event) {
   coordinate_click = event.coordinate;
   const pixel = event.pixel;
@@ -425,7 +424,7 @@ function addGeoJsonToMap(map, geojsonData, selected_orNotSelected) {
     });
 
     // Bild als Symbol laden
-    const iconUrl = "/data/sun.jpeg";
+    const iconUrl = "/images/sun.jpeg";
 
     //In die Info-Box reinschreiben und nicht console.log, also noch ändern
     //geojsonData.features.forEach(feature => {
