@@ -68,24 +68,27 @@ let totalRadiationGermany = 0;
 let analysisResults = []; // Global array to store analysis results
 
 
+
 map.on("click", function (event) {
   coordinate_click = event.coordinate;
   const pixel = event.pixel;
 
   let roundedCoordinates = coordinate_click.map((coord) => Math.round(coord));
 
+  console.log(pixel);
   if (geotiff_gray_layer != null) {
     try {
       const value = geotiff_gray_layer.getData(pixel);
 
+      console.log(value);
       // Log the pixel value to the console
       coordinateOutput.innerText = `EPSG-3857-Koordinaten: ${roundedCoordinates.join(", ")}`;
-      coordinateOutput.innerText +=
-        ",  Monatssummen der direkten Strahlung in kWh/m²: " + value[0];
+      coordinateOutput.innerText += 
+        ", \nMonatssummen der direkten Strahlung in kWh/m²: " + value[0];
     } catch {
       coordinateOutput.innerText = `EPSG-3857-Coordinates: ${roundedCoordinates.join(", ")}`;
       coordinateOutput.innerText +=
-        ",  Monatssummen der direkten Strahlung in kWh/m²: n.A.";
+        ", \nMonatssummen der direkten Strahlung in kWh/m²: n.A.";
     }
   } else {
     coordinateOutput.innerText = `EPSG-3857-Koordinaten: ${roundedCoordinates.join(", ")}`;
@@ -343,7 +346,7 @@ function addGeoJsonToMapWithBuffering(map, geojsonData) {
     }
   
     // Create and add new layers based on the provided GeoJSON data
-    const iconUrl = "/data/images/sun.jpeg"; 
+    const iconUrl = "/data/sun.jpeg"; // URL for the icon
   
     const iconStyle = new Style({
       image: new Icon({
@@ -424,7 +427,7 @@ function addGeoJsonToMap(map, geojsonData, selected_orNotSelected) {
     });
 
     // Bild als Symbol laden
-    const iconUrl = "/images/sun.jpeg";
+    const iconUrl = "/data/sun.jpeg";
 
     //In die Info-Box reinschreiben und nicht console.log, also noch ändern
     //geojsonData.features.forEach(feature => {
@@ -833,6 +836,7 @@ currentPage_Increaser.addEventListener("click", function () {
 
 function showPage(pageIndex) {
     if (pageIndex >= 0 && pageIndex < pages.length) {
+        console.log(pages.length);
         features.innerHTML = pages[pageIndex].join(""); // Display the content of the current page
         updateNavigationButtons(); // Ensure navigation buttons are updated
     }
@@ -847,10 +851,12 @@ function createPagedContent(contentArray) {
     pages = []; // Reset pages array
     const itemsPerPage = 1; // Define how many items per page
 
+    console.log(contentArray.length);
     for (let i = 0; i < contentArray.length; i += itemsPerPage) {
         pages.push(contentArray.slice(i, i + itemsPerPage));
     }
 
+    console.log("createpage: "+contentArray.lenght);
     currentPage = pages.length - 1; // Set to the latest page
     showPage(currentPage); // Display the most recent page
 }
@@ -979,6 +985,11 @@ map.on("click", function (event) {
 
   map.forEachFeatureAtPixel(event.pixel, function (feature) {
 
+    if(feature.getId() == null){
+      feature.setId(generateUniqueId());
+      //console.log('UniqueID:')
+      //console.log(feature.getId());
+    }
     const geometryType = feature.getGeometry().getType();
     console.log(`geometryType: ${geometryType}`);
 
@@ -1186,7 +1197,10 @@ function handleFeatureSelection(feature, content) {
     } else {
       selected.add(feature);
       feature.setStyle(highlightStyle); // Apply the highlight style
+      console.log("ID" + feature.getId())
       featureContentMap.set(feature.getId(), content);
+      console.log("hinzufügen featureContentMap " + featureContentMap.size);
+
       // Add regionName to landkreise_Bundesländer if not already there
       if (regionName && !landkreise_Bundesländer.includes(regionName)) {
         landkreise_Bundesländer.push(regionName);
@@ -1229,6 +1243,13 @@ function updateFeatureDisplay() {
         for (let [key, value] of featureContentMap.entries()) {
             contentArray.unshift(value); // Add new content to the beginning of the array
         }
+        console.log("updateFeatureDisplay "+ contentArray.length);
+        console.log("updateFeatureDisplay "+ selected.s);
+
+        console.log(
+          Array.from(selected) // prints unique Array [1, 2, 3]
+        )
+        
         features_Count.innerHTML = "&nbsp;" + selected.size + " ausgewählte Einheiten";
         createPagedContent(contentArray); // Create and show the new page
     }
@@ -1315,18 +1336,25 @@ function getActiveLayer() {
   }
 }
 
-
-
 document.getElementById("dwd").addEventListener("click", function (event) {
   event.preventDefault();
 
   console.log('Sonneneinstrahlung laden button clicked');
 
-   // Bild anzeigen
-   const skalaBild = document.getElementById("skalaBild");
-   if (skalaBild) {
-     skalaBild.style.display = "block";
+  // Remove the radiation info window
+  let radiationInfo = document.getElementById("radiationInfo");
+  if (radiationInfo) {
+    radiationInfo.parentNode.removeChild(radiationInfo);
+  }
+
+   // Remove the analysis info window
+   let analysisInfo = document.getElementById("analysisInfo");
+   if (analysisInfo) {
+     analysisInfo.parentNode.removeChild(analysisInfo);
    }
+
+  // Reset totalRadiationGermany
+  totalRadiationGermany = null;
 
   if (geotiff != null) {
     geotiff = null;
@@ -1354,7 +1382,32 @@ document.getElementById("dwd").addEventListener("click", function (event) {
       dwd_Nodata_Meldung.innerText = ""; // Clear any previous message
     }
 
-  rasterCode = year + month;
+    // Bild anzeigen
+  const skalaBild = document.getElementById("skalaBild");
+  const skalaBild2 = document.getElementById("skalaBild2");
+  
+  if (skalaBild2) {
+    skalaBild2.style.display = "none";
+  }
+
+  if (skalaBild) {
+    skalaBild.style.display = "none";
+  }
+
+  if(month=="-"){
+
+    rasterCode = year;
+    
+    if (skalaBild2) {
+      skalaBild2.style.display = "block";
+    }
+  }else{
+    
+    if (skalaBild) {
+      skalaBild.style.display = "block";
+    }
+    rasterCode = year + month;
+  }
 
   geotiff = new GeoTIFF({
     sources: [
@@ -1364,16 +1417,35 @@ document.getElementById("dwd").addEventListener("click", function (event) {
     ],
   });
 
-  geotiff_gray = new GeoTIFF({
-    sources: [
-      {
-        url:
-          "data/geotiffs/grids_germany_monthly_radiation_direct_" +
-          rasterCode +
-          "_3857.tif",
-      },
-    ],
-  });
+  if(month=="-"){
+
+    console.log("grau_init");
+    geotiff_gray = new GeoTIFF({
+      sources: [
+        {
+          url:
+            "data/geotiffs/grids_germany_annual_radiation_direct_" +
+            rasterCode +
+            "_3857.tif",
+        },
+      ],
+    });
+    console.log("data/geotiffs/grids_germany_annual_radiation_direct_" +
+    rasterCode +
+    "_3857.tif")
+  }else{
+
+    geotiff_gray = new GeoTIFF({
+      sources: [
+        {
+          url:
+            "data/geotiffs/grids_germany_monthly_radiation_direct_" +
+            rasterCode +
+            "_3857.tif",
+        },
+      ],
+    });
+  }
 
   geotiffLayer = new TileLayer({
     source: geotiff,
@@ -1382,7 +1454,7 @@ document.getElementById("dwd").addEventListener("click", function (event) {
 
   geotiff_gray_layer = new TileLayer({
     source: geotiff_gray,
-    opacity: 0.5,
+    opacity: 0.0,
   });
 
   map.addLayer(geotiffLayer);
@@ -1686,6 +1758,12 @@ document.getElementById("hideDWD").addEventListener("click", function (event) {
 
    // Bild ausblenden
   const skalaBild = document.getElementById("skalaBild");
+  const skalaBild2 = document.getElementById("skalaBild2");
+  
+  if (skalaBild2) {
+    skalaBild2.style.display = "none";
+  }
+
   if (skalaBild) {
     skalaBild.style.display = "none";
   }
@@ -1726,5 +1804,4 @@ closeButton.addEventListener("click", function () {
   dataWarehouseOperations.style.display = "none"; // Schließt das Data Warehouse Operations-Fenster
   dropdownToggle.style.display = "flex"; // Zeigt die Dropdown-Toggle-Leiste wieder an
 });
-
 
