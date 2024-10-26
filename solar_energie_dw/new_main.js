@@ -1449,7 +1449,7 @@ document.getElementById("dwd").addEventListener("click", function (event) {
 
   geotiffLayer = new TileLayer({
     source: geotiff,
-    opacity: 0.5,
+    opacity: 1.0,
   });
 
   geotiff_gray_layer = new TileLayer({
