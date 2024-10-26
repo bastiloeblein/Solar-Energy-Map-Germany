@@ -35,6 +35,7 @@ The repository is organized into three main folders:
 
 3. **preprocessing**
    - Contains notebooks used for data preprocessing.
+   - Geotiff_Notebook for automatic webscrape and preprocessing is contained in drive file
    - Prepares the data utilized in the application.
 
 ### Why This Structure?
