@@ -30,7 +30,10 @@ def get_raster_path(raster_code):
     """
     # Adjust the path according to your directory structure
     year_month = raster_code  # e.g., '202306'
-    raster_filename = f"grids_germany_monthly_radiation_direct_{year_month}_3857.tif"
+    if(len(year_month) == 4):
+        raster_filename = f"grids_germany_annual_radiation_direct_{year_month}_3857.tif"
+    else:
+        raster_filename = f"grids_germany_monthly_radiation_direct_{year_month}_3857.tif"
     raster_path = os.path.join("flaskr", "static", "geotiffs", raster_filename)
     logging.debug(f"Constructed raster path: {raster_path}")
 
@@ -122,13 +125,11 @@ def create_app(test_config=None):
     app.config["CACHE_TYPE"] = "FileSystemCache"
     app.config["CACHE_DIR"] = "flaskr/flask_cache"  # Cache directory
     app.config["CACHE_DEFAULT_TIMEOUT"] = 3600  # Cache timeout set to 1 hour
-
-    # Ensure the cache directory exists
+    
     cache_dir = app.config["CACHE_DIR"]
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
         logging.info(f"Created cache directory at {cache_dir}")
-
     cache = Cache(app)
 
     if test_config is None:
@@ -661,6 +662,10 @@ def create_app(test_config=None):
 
         # Path to the Landkreise GeoJSON file
         vector_path = os.path.join("flaskr", "static", "geojson_data", "landkreise_simplify0.geojson")
+
+        # def normalize_name(name):
+        #     # Splitting by both space and hyphen and taking the last part
+        #     return name.split()[-1] if " " in name else name
 
         try:
             results = calculate_zonal_stats(
