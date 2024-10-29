@@ -286,18 +286,41 @@
   bottom: 60px; /* Abstand vom unteren Rand, um über dem Streifen zu sein */
   z-index: 1000; /* Über anderen Elementen anzeigen */
   height: 50%; /* Höhe relativ zur Bildschirmgröße */
-  max-height: 1200px; /* Maximale Höhe */
+  max-height: 270px; /* Maximale Höhe */
 }
 
 @media screen and (max-width: 768px) {
   #skalaBild {
     height: 25%;
-    max-height: 150px;
+    max-height: 100px;
   }
 }
 
 @media screen and (max-width: 480px) {
   #skalaBild {
+    height: 30%;
+    max-height: 100px;
+  }
+}
+
+#skalaBild2 {
+  position: absolute;
+  right: 10px; /* Abstand vom rechten Rand */
+  bottom: 60px; /* Abstand vom unteren Rand, um über dem Streifen zu sein */
+  z-index: 1000; /* Über anderen Elementen anzeigen */
+  height: 50%; /* Höhe relativ zur Bildschirmgröße */
+  max-height: 270px; /* Maximale Höhe */
+}
+
+@media screen and (max-width: 768px) {
+  #skalaBild2 {
+    height: 25%;
+    max-height: 100px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #skalaBild2 {
     height: 30%;
     max-height: 100px;
   }
@@ -313,8 +336,11 @@
     </div>
 
     <img id="skalaBild" src="images/skala.jpg" alt="Skala" style="display: none;" />
+    <img id="skalaBild2" src="images/skala2.png" alt="Skala2" style="display: none;" />
 
     <div id="info-box" class="info-box">
+      <div id="output"></div>
+      <div id="coordinateOutput"></div>
       <button id="previous" class="btn btn-secondary btn-sm">
         Vorherige Seite
       </button>
@@ -329,9 +355,6 @@
       <span id="features_Count">&nbsp;0 Einheiten ausgewählt</span>
       <span id="features">ausgewählte Einheiten</span>
     </div>
-
-    <div id="output"></div>
-    <div id="coordinateOutput"></div>
 
     <div id="dropdownToggle">
       <span>Interaktive Kartenoptionen</span>
@@ -400,6 +423,15 @@
         <form id="data-loader-form">
           <label for="year" style="font-size: 16px">Jahr:</label>
           <select id="year" name="year" class="form-select form-select-sm">
+            
+            <option value="2015">2015</option>
+            <option value="2016">2016</option>
+            <option value="2017">2017</option>
+            <option value="2018">2018</option>
+            <option value="2019">2019</option>
+            <option value="2020">2020</option>
+            <option value="2021">2021</option>
+            <option value="2022">2022</option>
             <option value="2023">2023</option>
             <option value="2024">2024</option>
           </select>
@@ -419,6 +451,7 @@
             <option value="10">Oktober</option>
             <option value="11">November</option>
             <option value="12">Dezember</option>
+            <option value="-">-</option>
           </select>
           <br />
           <button id="dwd" class="btn btn-primary btn-sm">
