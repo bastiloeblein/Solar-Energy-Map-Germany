@@ -346,7 +346,7 @@ function addGeoJsonToMapWithBuffering(map, geojsonData) {
     }
   
     // Create and add new layers based on the provided GeoJSON data
-    const iconUrl = "/data/sun.jpeg"; // URL for the icon
+    const iconUrl = "/images/sun.jpeg"; // URL for the icon
   
     const iconStyle = new Style({
       image: new Icon({
@@ -427,7 +427,7 @@ function addGeoJsonToMap(map, geojsonData, selected_orNotSelected) {
     });
 
     // Bild als Symbol laden
-    const iconUrl = "/data/sun.jpeg";
+    const iconUrl = "/images/sun.jpeg";
 
     //In die Info-Box reinschreiben und nicht console.log, also noch ändern
     //geojsonData.features.forEach(feature => {
@@ -516,7 +516,7 @@ function addGeoJsonToMap(map, geojsonData, selected_orNotSelected) {
     // Bild als Symbol laden
     if (geoJsonSource != null) geoJsonSource = null;
 
-    const iconUrl = "/data/sun.jpeg";
+    const iconUrl = "/images/sun.jpeg";
 
     //In die Info-Box reinschreiben und nicht console.log, also noch ändern
     //geojsonData.features.forEach(feature => {

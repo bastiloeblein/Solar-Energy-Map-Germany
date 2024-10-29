@@ -84,7 +84,7 @@ This folder contains the Flask server and associated data.
     Activate the envicronment
     
     ```bash
-    C:/path/to/new/virtual/environment/Source/activate
+    C:/path/to/new/virtual/environment/Scripts/activate
     ```
 
 
@@ -161,7 +161,17 @@ The necessary data files are too large to be hosted on GitHub due to storage lim
 - **Data Request:** The data will be provided upon request. Please contact us to obtain the necessary files.
 - **Data Placement:** After receiving the data, place it in the following folder structure:
 
-  *(Detailed folder structure will be provided later.)*
+         Solar-Energy-Map-Germany/
+      ├── CSH-Server/
+      │   └── flaskr/
+      │       └── static/                 # Place the 'static' folder here
+      ├── Preprocessing/
+      │   └── Marktstammdatenregister/
+      │       └── data_raw/               # Place the 'data_raw' folder here
+      ├── solar_energie_dw/
+         ├── data/                       # Place the 'data' folder here
+         └── node_modules/               # Place the 'node_modules' folder here
+
 
 ## Contact
 
