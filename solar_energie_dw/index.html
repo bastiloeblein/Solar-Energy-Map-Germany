@@ -326,6 +326,12 @@
   }
 }
 
+button:disabled {
+  background-color: #ccc; /* Graue Hintergrundfarbe */
+  color: #666; /* Graue Schriftfarbe */
+  cursor: not-allowed; /* Zeigt an, dass der Button nicht klickbar ist */
+}
+
     </style>
   </head>
   <body>
@@ -439,6 +445,7 @@
           <br />
           <label for="month" style="font-size: 16px">Monat:</label>
           <select id="month" name="month" class="form-select form-select-sm">
+            <option value="-">Gesamtes Jahr</option>
             <option value="01">Januar</option>
             <option value="02">Februar</option>
             <option value="03">März</option>
@@ -451,7 +458,6 @@
             <option value="10">Oktober</option>
             <option value="11">November</option>
             <option value="12">Dezember</option>
-            <option value="-">-</option>
           </select>
           <br />
           <button id="dwd" class="btn btn-primary btn-sm">

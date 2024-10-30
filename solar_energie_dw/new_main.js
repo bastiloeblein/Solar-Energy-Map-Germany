@@ -842,10 +842,6 @@ function showPage(pageIndex) {
     }
 }
 
-function updateNavigationButtons() {
-    currentPage_Decreaser.disabled = currentPage === 0;
-    currentPage_Increaser.disabled = currentPage === pages.length - 1;
-}
 
 function createPagedContent(contentArray) {
     pages = []; // Reset pages array
@@ -857,7 +853,7 @@ function createPagedContent(contentArray) {
     }
 
     console.log("createpage: "+contentArray.lenght);
-    currentPage = pages.length - 1; // Set to the latest page
+    currentPage = 0 // pages.length - 1; // Set to the latest page
     showPage(currentPage); // Display the most recent page
 }
 
@@ -1025,7 +1021,7 @@ map.on("click", function (event) {
       // Add properties to the content with better formatting
       for (const property in properties) {
         if (properties.hasOwnProperty(property)) {
-          if (property === "year") {
+          if (property.toLowerCase() === "year") {
             // Add the year property without toLocaleString()
             content += `<strong>${property}:</strong> ${properties[property]}<br>`;
           } else {
@@ -1253,6 +1249,13 @@ function updateFeatureDisplay() {
         features_Count.innerHTML = "&nbsp;" + selected.size + " ausgewählte Einheiten";
         createPagedContent(contentArray); // Create and show the new page
     }
+    updateNavigationButtons(); 
+}
+
+// Aktualisiere die Funktion updateNavigationButtons
+function updateNavigationButtons() {
+  currentPage_Decreaser.disabled = currentPage === 0 || pages.length === 0;
+  currentPage_Increaser.disabled = currentPage === pages.length - 1 || pages.length === 0;
 }
 
 
@@ -1292,6 +1295,8 @@ if (popover && popover._element && popover._element.closest) {
   features_Count.innerHTML =
     "&nbsp;" + selected.size + " ausgewählte Einheiten";
   features.innerHTML = "";
+
+  updateNavigationButtons(); 
 });
 
 // Funktion zum Laden der GeoJSON-Daten und Hinzufügen zur vorhandenen Karte in OpenLayers
@@ -1735,7 +1740,9 @@ function displayRadiationData(totalRadiationGermany, rasterCode) {
     ${infoButton}
   </div>
   `;
-  content += `<p><strong>Gesamt Deutschland:</strong> ${totalRadiationGermany.toFixed(2)} kWh/m²</p>`;
+  // content += `<p><strong>Gesamt Deutschland:</strong> ${totalRadiationGermany.toFixed(2)} kWh/m²</p>`;
+  content += `<p><strong>Gesamt Deutschland:</strong> ${totalRadiationGermany.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh/m²</p>`;
+
   content += `<button id="performPotentialAnalysisBtn" class="btn btn-primary btn-sm">Solarpotentialanalyse durchführen</button>`;
 
   radiationInfo.innerHTML = content;
